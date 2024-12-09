@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi
+  template:
+    metadata:
+      labels:
+        app: fastapi
+    spec:
+      containers:
+        - name: fastapi
+          image: peneh/fastapi4k8:latest
+          env:
+            - name: DATABASE_URL
+              value: postgresql://peneh:penehpassword11!!@postgres/db
+          ports:
+            - containerPort: 8000

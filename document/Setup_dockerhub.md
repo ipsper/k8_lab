@@ -30,6 +30,13 @@ docker login -u peneh
 docker build -t peneh/fastapi4k8:latest .
 ```
 
+## för mac
+
+```
+
+docker build -t peneh/fastapi4k8onmacos:latest .
+```
+
 docker build -t <username>/<repository-name>:<tag> .
 
 - Exempel:
@@ -50,6 +57,13 @@ docker push <username>/<repository-name>:<tag>
 docker push peneh/fastapi4k8:latest
 ```
 
+### mac
+
+```
+docker push peneh/fastapi4k8onmacos:latest
+
+```
+
 4. Verifiera i DockerHub
    Gå tillbaka till DockerHub och öppna ditt repository.
    Du bör nu se din image och tagg där. 5. Dra ner din image
@@ -62,6 +76,13 @@ docker pull <username>/<repository-name>:<tag>
 ```
 
 docker pull peneh/fastapi4k8:latest
+```
+
+### mac
+
+```
+docker pull peneh/fastapi4k8onmacos:latest
+
 ```
 
 Tips
@@ -78,7 +99,14 @@ bash
 docker build -t fastapi-app .
 This will create a Docker image named fastapi-app.
 
-2. Run the Docker Container
+2. setup the network
+
+```
+docker network create fastapi-network
+
+```
+
+3. Run the Docker Container
    Start a container from the built image. You need to connect it to the PostgreSQL database.
 
 a. If PostgreSQL is running locally:
@@ -86,7 +114,7 @@ Use the following command:
 
 docker run -d --name fastapi-container \
  -e DATABASE_URL="postgresql://user:password@host:port/db" \
- -p 8000:8000 fastapi-app
+ -p 8000:8000 fastapi4k8:latest
 
 Replace:
 
@@ -102,6 +130,19 @@ password with
 echo -n "password" | base64
 ```
 
+docker run -d --name fastapi-container \
+ -e DATABASE_URL="postgresql://cG9zdGdyZXM=:cGFzc3dvcmQ=@localhost:8080/db" \
+ -p 8000:8000 fastapi4k8:latest
+
+### mac
+
+```
+docker run -d --name fastapi-container \
+ -e DATABASE_URL="postgresql://cG9zdGdyZXM=:cGFzc3dvcmQ=@localhost:8080/db" \
+ -p 8000:8000 fastapi4k8onmacos:latest
+
+```
+
 user: PostgreSQL username
 password: PostgreSQL password
 host: Host where the database is running (localhost or container name if using Docker Compose)
@@ -115,8 +156,6 @@ Maps port 8000 of the container to port 8000 of your machine.
 b. If PostgreSQL is running in another Docker container:
 Use Docker's internal networking by referring to the database container by its name (e.g., postgres):
 
-bash
-￼Copy code
 docker network create fastapi-network
 
 # Run PostgreSQL container

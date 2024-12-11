@@ -95,8 +95,12 @@ Hantera åtkomst: För privata repos kan du lägga till teammedlemmar eller spec
    Run the following command in the root of your project directory (where your Dockerfile is located):
 
 bash
-￼Copy code
+
+```
 docker build -t fastapi-app .
+
+```
+
 This will create a Docker image named fastapi-app.
 
 2. setup the network
@@ -176,16 +180,10 @@ This connects both containers via the fastapi-network Docker network.
 3. Access Your Application
    After starting the container, your FastAPI app will be available at:
 
-plaintext
-￼Copy code
 http://localhost:8000 4. Stopping the Container
 To stop the container:
 
-bash
-￼Copy code
 docker stop fastapi-container
 To remove it:
 
-bash
-￼Copy code
 docker rm fastapi-container

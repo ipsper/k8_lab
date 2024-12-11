@@ -3,9 +3,10 @@ kind: Service
 metadata:
   name: fastapi
 spec:
-  ports:
-    - port: 80
-      targetPort: 8000
   selector:
     app: fastapi
-    type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: LoadBalancer

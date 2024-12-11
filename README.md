@@ -8,6 +8,7 @@ En första lab med k8
 - [Container storage](/document/Container_storage.md)
 - [Setup dockerhub](/document/Setup_dockerhub.md)
 - [Struktur](/document/Struktur.md)
+- [Kind](/document/kind.md)
 - [Kladd](/document/Kladd_for_code.md)
 
 # Passords hantering

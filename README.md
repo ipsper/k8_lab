@@ -9,6 +9,7 @@ En första lab med k8
 - [Setup dockerhub](/document/Setup_dockerhub.md)
 - [Struktur](/document/Struktur.md)
 - [Kind](/document/kind.md)
+- [NGINX ingress](/document/NGINX.md)
 - [Kladd](/document/Kladd_for_code.md)
 
 # Passords hantering

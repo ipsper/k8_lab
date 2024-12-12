@@ -18,6 +18,7 @@ kubectl apply -f kubernetes/postgres-deployment.yaml
 kubectl apply -f kubernetes/postgres-service.yaml
 kubectl apply -f kubernetes/fastapi-deployment.yaml
 kubectl apply -f kubernetes/fastapi-service.yaml
+kubectl apply -f kubernetes/fastapi-ingress.yaml
 
 4. Verify the Deployment
    Check the status of your deployment and service:
@@ -29,6 +30,8 @@ kubectl get services
 
 5. Access the FastAPI Application
    Since kind runs inside Docker, you need to forward the port to access the FastAPI application from your host machine:
+
+   Not needed if ingress is in use
 
 ```
 kubectl port-forward service/fastapi 8080:80
@@ -161,6 +164,8 @@ kubectl apply -f kubernetes/postgres-deployment.yaml
 kubectl apply -f kubernetes/postgres-service.yaml
 kubectl apply -f kubernetes/fastapi-deployment.yaml
 kubectl apply -f kubernetes/fastapi-service.yaml
+kubectl apply -f kubernetes/fastapi-ingress.yaml
+
 ```
 
 ## mög not found

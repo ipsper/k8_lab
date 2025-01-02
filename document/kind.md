@@ -8,6 +8,8 @@
 
 ```
 kind create cluster
+kind create cluster --config kubernetes/kind-config.yaml
+
 ```
 
 3. Apply the Configuration

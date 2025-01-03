@@ -187,3 +187,88 @@ error: lost connection to pod
       NAME READY STATUS RESTARTS AGE
       fastapi-84cfcb4f6-j5n55 0/1 CrashLoopBackOff 6 (3m3s ago) 9m2s
       postgres-5865844c6d-m5nd5 1/1 Running 0 9m13s
+
+### Direkt från Chat
+
+Om du vill sätta upp FastAPI och PostgreSQL-containrar utan att använda Docker Compose, kan du göra det med individuella docker run-kommandon. Här är en steg-för-steg-guide:
+
+1. Skapa FastAPI-projektet
+   Skapa en mappstruktur:
+
+mkdir fastapi-postgres
+cd fastapi-postgres
+mkdir app
+Skapa filen app/main.py:
+
+python
+￼Copy code
+from fastapi import FastAPI
+import psycopg2
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+return {"message": "Welcome to FastAPI with PostgreSQL"}
+
+@app.get("/db-test")
+def test_db():
+try:
+conn = psycopg2.connect(
+dbname="mydatabase",
+user="postgres",
+password="password",
+host="localhost",
+port="5432",
+)
+cur = conn.cursor()
+cur.execute("SELECT 1;")
+result = cur.fetchone()
+cur.close()
+conn.close()
+return {"db_test": result}
+except Exception as e:
+return {"error": str(e)} 2. Skapa en Dockerfile för FastAPI
+Skapa en fil Dockerfile i huvudmappen:
+
+dockerfile
+￼Copy code
+
+# Dockerfile
+
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY ./app /app
+
+RUN pip install --no-cache-dir fastapi uvicorn psycopg2-binary
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 3. Bygg Docker-bilden för FastAPI
+Bygg bilden med följande kommando:
+
+bash
+￼Copy code
+docker build -t fastapi-app . 4. Starta PostgreSQL-container
+Starta en PostgreSQL-container:
+
+bash
+￼Copy code
+docker run --name postgres-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=mydatabase -p 5432:5432 -d postgres:15 5. Starta FastAPI-container
+Starta FastAPI-container och koppla den till PostgreSQL:
+
+bash
+￼Copy code
+docker run --name fastapi-app --link postgres-db:db -e DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase -p 8000:8000 fastapi-app 6. Testa applikationen
+Gå till http://localhost:8000 för att se FastAPI.
+Testa /db-test för att säkerställa att FastAPI kan ansluta till PostgreSQL.
+Förklaringar
+PostgreSQL-container
+
+--name postgres-db: Namnger containern.
+-e: Ställer in miljövariabler för användare, lösenord och databas.
+-p 5432:5432: Exponerar port 5432.
+FastAPI-container
+
+--name fastapi-app: Namnger containern.
+--link postgres-db:db: Kopplar FastAPI-container till PostgreSQL-container via aliaset db.
+-e DATABASE_URL=...: Miljövariabel som används av FastAPI för att ansluta till databasen.

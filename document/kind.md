@@ -3,26 +3,67 @@
 1. Install kind
    If you haven't installed kind yet, you can do so with the following command:
 
+```
+brew install kind
+```
+
 2. Create a kind Cluster
    Create a new Kubernetes cluster using kind:
 
 ```
 kind create cluster
 kind create cluster --config kubernetes/kind-config.yaml
-
 ```
 
-3. Apply the Configuration
+3. Use cluster
 
-kubectl apply -f kubernetes/postgres-secret.yaml
-kubectl apply -f kubernetes/postgres-config.yaml
-kubectl apply -f kubernetes/postgres-deployment.yaml
-kubectl apply -f kubernetes/postgres-service.yaml
-kubectl apply -f kubernetes/fastapi-deployment.yaml
-kubectl apply -f kubernetes/fastapi-service.yaml
-kubectl apply -f kubernetes/fastapi-ingress.yaml
+Set kubectl context to "kind-kind"
+You can now use your cluster with:
 
-4. Verify the Deployment
+kubectl cluster-info --context kind-kind
+
+Not sure what to do next? 😅 Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+
+```
+kubectl cluster-info --context kind-kind
+```
+
+Kubernetes control plane is running at https://127.0.0.1:64831
+CoreDNS is running at https://127.0.0.1:64831/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+
+```
+kubectl cluster-info dump
+```
+
+4. Apply the Configuration
+
+- If Linux
+
+```
+  kubectl apply -f kubernetes/postgres-secret.yaml
+  kubectl apply -f kubernetes/postgres-config.yaml
+  kubectl apply -f kubernetes/postgres-deployment.yaml
+  kubectl apply -f kubernetes/postgres-service.yaml
+  kubectl apply -f kubernetes/fastapi-deployment.yaml
+  kubectl apply -f kubernetes/fastapi-service.yaml
+  kubectl apply -f kubernetes/fastapi-ingress.yaml
+```
+
+- If MacOs
+
+```
+  kubectl apply -f kubernetes/postgres-secret.yaml
+  kubectl apply -f kubernetes/postgres-config.yaml
+  kubectl apply -f kubernetes/postgres-deployment.yaml
+  kubectl apply -f kubernetes/postgres-service.yaml
+  kubectl apply -f kubernetes/fastapi-deployment-mac.yaml
+  kubectl apply -f kubernetes/fastapi-service.yaml
+  kubectl apply -f kubernetes/fastapi-ingress.yaml
+```
+
+5. Verify the Deployment
    Check the status of your deployment and service:
 
 ```
@@ -30,7 +71,39 @@ kubectl get deployments
 kubectl get services
 ```
 
-5. Access the FastAPI Application
+6. Installera NGINX Ingress Controller
+
+Om EXTERNAL-IP för din tjänst är i tillståndet pending, kan det bero på att LoadBalancer-tjänsten inte kan allokera en extern IP-adress. Detta är vanligt i lokala Kubernetes-kluster som körs med kind eller minikube, eftersom de inte har en molnleverantör som tillhandahåller LoadBalancer-tjänster.
+
+För att lösa detta kan du använda en Ingress Controller istället. Här är stegen för att konfigurera en Ingress Controller med kind:
+
+- Installera NGINX Ingress Controller:
+
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+```
+
+- Vänta tills alla pods är i Running-tillstånd:
+
+```
+kubectl get pods -n ingress-nginx --watch
+```
+
+Uppdatera din hosts-fil för att peka din domän till localhost:
+
+```
+sudo vi /etc/hosts
+```
+
+Lägg till följande rad:
+
+127.0.0.1 your-domain.com
+Byt ut your-domain.com med den domän du har angett i din Ingress-resurs.
+
+- Testa din applikation genom att besöka http://your-domain.com i din webbläsare.
+  Genom att använda en Ingress Controller kan du hantera trafik till din applikation utan att behöva en extern LoadBalancer.
+
+6. Access the FastAPI Application
    Since kind runs inside Docker, you need to forward the port to access the FastAPI application from your host machine:
 
    Not needed if ingress is in use
@@ -45,7 +118,7 @@ hardcoded-credentials Embedding credentials in source code risks unauthorized ac
 Now, you can access your FastAPI application at
 http://localhost:8080
 
-6. Clean Up
+7. Clean Up
    When you are done, you can delete the kind cluster:
 
 ```
@@ -82,6 +155,11 @@ Look for events at the bottom of the output to see if there are any errors or wa
       Check the logs of the pod to see if there are any errors:
 
 ￼kubectl logs <pod-name>
+
+```
+
+￼kubectl logs fastapi-7447b65c7-f8z9m
+```
 
 3. Verify Deployment
    Ensure that the fastapi deployment is correctly applied and running:
@@ -228,11 +306,12 @@ cur.close()
 conn.close()
 return {"db_test": result}
 except Exception as e:
-return {"error": str(e)} 2. Skapa en Dockerfile för FastAPI
-Skapa en fil Dockerfile i huvudmappen:
+return {"error": str(e)}
+
+2. Skapa en Dockerfile för FastAPI
+   Skapa en fil Dockerfile i huvudmappen:
 
 dockerfile
-￼Copy code
 
 # Dockerfile
 
@@ -246,23 +325,23 @@ RUN pip install --no-cache-dir fastapi uvicorn psycopg2-binary
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] 3. Bygg Docker-bilden för FastAPI
 Bygg bilden med följande kommando:
 
-bash
-￼Copy code
-docker build -t fastapi-app . 4. Starta PostgreSQL-container
-Starta en PostgreSQL-container:
+docker build -t fastapi-app .
 
-bash
-￼Copy code
-docker run --name postgres-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=mydatabase -p 5432:5432 -d postgres:15 5. Starta FastAPI-container
-Starta FastAPI-container och koppla den till PostgreSQL:
+4. Starta PostgreSQL-container
+   Starta en PostgreSQL-container:
 
-bash
-￼Copy code
-docker run --name fastapi-app --link postgres-db:db -e DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase -p 8000:8000 fastapi-app 6. Testa applikationen
-Gå till http://localhost:8000 för att se FastAPI.
-Testa /db-test för att säkerställa att FastAPI kan ansluta till PostgreSQL.
-Förklaringar
-PostgreSQL-container
+docker run --name postgres-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=mydatabase -p 5432:5432 -d postgres:15
+
+5. Starta FastAPI-container
+   Starta FastAPI-container och koppla den till PostgreSQL:
+
+docker run --name fastapi-app --link postgres-db:db -e DATABASE_URL=postgresql://postgres:password@db:5432/mydatabase -p 8000:8000 fastapi-app
+
+6. Testa applikationen
+   Gå till http://localhost:8000 för att se FastAPI.
+   Testa /db-test för att säkerställa att FastAPI kan ansluta till PostgreSQL.
+   Förklaringar
+   PostgreSQL-container
 
 --name postgres-db: Namnger containern.
 -e: Ställer in miljövariabler för användare, lösenord och databas.

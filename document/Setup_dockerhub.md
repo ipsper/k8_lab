@@ -41,7 +41,7 @@ docker build -t <username>/<repository-name>:<tag> .
 
 - Exempel:
 
-```
+```k8_lab_venv
 
 docker build -t peneh/fastapi4k8:latest .
 ```

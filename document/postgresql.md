@@ -51,6 +51,18 @@ sudo systemctl restart postgresql
 sudo apt install postgresql-client
 ```
 
+## add database name
+
+```
+psql -h localhost -U postgres
+
+
+CREATE DATABASE mydatabase;
+
+\l
+\q
+```
+
 ```
 psql --host localhost --username postgres --password --dbname mydatabase
 

@@ -176,3 +176,81 @@ Detta bekräftar om nätverket påverkar uppstarten av containern.
    Kontrollera om det finns några fel i Docker-demonens loggar relaterade till nätverk:
 
 sudo journalctl -u docker
+
+## Msaa blask
+
+jag kan inte nå 192.168.1.101 från linux hosten
+
+Docker_med_dhcp.md
+:105
+GitHub Copilot
+Used 1 reference
+If you cannot reach the IP address 192.168.1.101 from your Linux host, it could be due to several reasons, such as network configuration issues or firewall settings. Here are some steps to troubleshoot and resolve the issue:
+
+Step 1: Verify macvlan Network Configuration
+Ensure that the macvlan network is correctly configured and that the containers are attached to it.
+
+￼
+docker network inspect fastapi_macvlan
+This command will show the details of the macvlan network, including the connected containers and their IP addresses.
+
+Step 2: Verify Container IP Addresses
+Ensure that the containers have the correct IP addresses assigned. You can check the IP addresses of the running containers using:
+
+￼
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' postgres-dbdocker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' fastapi-app
+Step 3: Check Network Interface
+Ensure that the network interface specified in the macvlan configuration (eth0 or another interface) is correct and active. List all network interfaces and their statuses:
+
+￼
+ip link show
+
+4. Create a macvlan Network with a Bridge
+   To allow communication between the host and the macvlan network, you can create a macvlan bridge. This involves creating a macvlan network in bridge mode and a macvlan interface on the host.
+
+Create macvlan Network in Bridge Mode
+￼
+docker network create -d macvlan \ --subnet=192.168.1.0/24 \ --gateway=192.168.1.1 \ -o parent=eth0 \ fastapi_macvlan
+Create macvlan Interface on the Host
+Create a macvlan interface on the host to allow communication with the macvlan network:
+
+￼
+
+```
+
+sudo ip link add fastapi_net link enp2s0 type macvlan mode bridge
+sudo ip addr add 192.168.1.200/24 dev fastapi_net
+sudo ip link set fastapi_net up
+
+sudo ip link add fastapi_macvlan_host link enp2s0 type macvlan mode bridge
+sudo ip addr add 192.168.1.200/24 dev fastapi_macvlan_host
+sudo ip link set fastapi_macvlan_host up
+
+
+
+```
+
+Replace 192.168.1.200 with an available IP address in the same subnet.
+
+Step 5: Run Containers on macvlan Network
+Run the PostgreSQL container on the macvlan network:
+
+￼
+docker run -d --name postgres-db --net fastapi_macvlan --ip 192.168.1.101 \ -e POSTGRES_DB=postgres \ -e POSTGRES_USER=postgres \ -e POSTGRES_PASSWORD=your_password \ -p 5432:5432 \ postgres:13
+Run the FastAPI container on the macvlan network:
+
+￼
+docker run -d --name fastapi-app --net fastapi_macvlan --ip 192.168.1.102 \ -e POSTGRES_DB=postgres \ -e POSTGRES_USER=postgres \ -e POSTGRES_PASSWORD=your_password \ -e POSTGRES_HOST=192.168.1.101 \ -e POSTGRES_PORT=5432 \ -e UVICORN_HOST=0.0.0.0 \ -e UVICORN_PORT=8000 \ -p 8000:8000 \ fastapi-app
+
+Step 6: Verify Connectivity
+
+From the host, try to ping the containers to verify connectivity:
+
+￼
+ping 192.168.1.101ping 192.168.1.102
+Step 7: Access the FastAPI Application
+Try to access the FastAPI application from the host:
+
+￼
+curl http://192.168.1.102:8000
+By following these steps, you should be able to configure the macvlan network correctly and allow communication between the host and the containers. This will enable you to reach the IP address 192.168.1.101 from your Linux host.

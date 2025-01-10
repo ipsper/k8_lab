@@ -89,9 +89,48 @@ docker network create \
  --subnet=192.168.1.0/24 \
  --gateway=192.168.1.1 \
  --ip-range=192.168.1.100/28 \
- -o parent=eth0 \
- fastapi_macvlan
+ -o parent=enp2s0 \
+ fastapi_net
+
+docker network create \
+ --driver macvlan \
+ --subnet=192.168.1.0/24 \
+ --gateway=192.168.1.1 \
+ --ip-range=192.168.1.96/28 \
+ -o parent=enp2s0 \
+ fastapi_net
+
 Kör flera containrar:
+
+docker run -d --name fastapi-app-101 --net fastapi_net --ip 192.168.1.101 \
+ -e POSTGRES_DB=postgres \
+ -e POSTGRES_USER=postgres \
+ -e POSTGRES_PASSWORD=your_password \
+ -e POSTGRES_HOST=192.168.1.120 \
+ -e POSTGRES_PORT=5432 \
+ -e UVICORN_HOST=0.0.0.0 \
+ -e UVICORN_PORT=8000 \
+ peneh/fastapi4k8:latest
+
+docker run -d --name fastapi-app-102 --net fastapi_net --ip 192.168.1.102 \
+ -e POSTGRES_DB=postgres \
+ -e POSTGRES_USER=postgres \
+ -e POSTGRES_PASSWORD=your_password \
+ -e POSTGRES_HOST=192.168.1.120 \
+ -e POSTGRES_PORT=5432 \
+ -e UVICORN_HOST=0.0.0.0 \
+ -e UVICORN_PORT=8000 \
+ peneh/fastapi4k8:latest
+
+docker run -d --name fastapi-app -p 8000:8000 \
+ -e POSTGRES_DB=postgres \
+ -e POSTGRES_USER=postgres \
+ -e POSTGRES_PASSWORD=your_password \
+ -e POSTGRES_HOST=localhost \
+ -e POSTGRES_PORT=5432 \
+ -e UVICORN_HOST=0.0.0.0 \
+ -e UVICORN_PORT=8000 \
+ fastapi-app
 
 docker run --net fastapi_macvlan --ip 192.168.1.101 fastapi-app
 docker run --net fastapi_macvlan --ip 192.168.1.102 fastapi-app

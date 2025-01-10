@@ -74,3 +74,18 @@ psql --host localhost --username postgres --password --dbname mydatabase
 Password:
 psql: error: connection to server at "localhost" (127.0.0.1), port 5432 failed: FATAL: password authentication failed for user "postgres"
 connection to server at "localhost" (127.0.0.1), port 5432 failed: FATAL: password authentication failed for user "postgres"
+
+## postgress container
+
+Step 1: Run PostgreSQL Container
+Run a PostgreSQL container with the necessary environment variables:
+
+````
+docker run -d --name postgres-db --net fastapi_net --ip 192.168.1.120 \
+  -e POSTGRES_DB=postgres \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=your_password \
+  -p 5432:5432 \
+  postgres:13
+￼```
+````

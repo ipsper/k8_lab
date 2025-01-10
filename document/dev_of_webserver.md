@@ -13,7 +13,7 @@ python -m pip install -r app/requirements.txt
 
 ```
 
-export POSTGRES_DB=mydatabase
+export POSTGRES_DB=postgres
 export POSTGRES_USER=postgres
 export POSTGRES_PASSWORD=your_password
 export POSTGRES_HOST=localhost

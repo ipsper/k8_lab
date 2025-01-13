@@ -279,7 +279,6 @@ mkdir app
 Skapa filen app/main.py:
 
 python
-￼Copy code
 from fastapi import FastAPI
 import psycopg2
 

@@ -177,14 +177,10 @@ Detta bekräftar om nätverket påverkar uppstarten av containern.
 
 sudo journalctl -u docker
 
-## Msaa blask
+## Massa blask
 
 jag kan inte nå 192.168.1.101 från linux hosten
 
-Docker_med_dhcp.md
-:105
-GitHub Copilot
-Used 1 reference
 If you cannot reach the IP address 192.168.1.101 from your Linux host, it could be due to several reasons, such as network configuration issues or firewall settings. Here are some steps to troubleshoot and resolve the issue:
 
 Step 1: Verify macvlan Network Configuration
@@ -210,7 +206,7 @@ ip link show
 
 Create macvlan Network in Bridge Mode
 ￼
-docker network create -d macvlan \ --subnet=192.168.1.0/24 \ --gateway=192.168.1.1 \ -o parent=eth0 \ fastapi_macvlan
+docker network create -d macvlan --subnet=192.168.1.0/24 --gateway=192.168.1.1 -o parent=eth0 fast_macvlan
 Create macvlan Interface on the Host
 Create a macvlan interface on the host to allow communication with the macvlan network:
 
@@ -254,3 +250,5 @@ Try to access the FastAPI application from the host:
 ￼
 curl http://192.168.1.102:8000
 By following these steps, you should be able to configure the macvlan network correctly and allow communication between the host and the containers. This will enable you to reach the IP address 192.168.1.101 from your Linux host.
+
+##

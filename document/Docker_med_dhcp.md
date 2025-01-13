@@ -81,6 +81,22 @@ Nätverket måste administreras manuellt, inklusive att säkerställa att IP-adr
 2. Använda Docker Macvlan
    Med macvlan-drivrutinen kan varje container få en egen IP-adress från det lokala nätverket.
 
+## hitta länk
+
+mac
+
+```
+
+ifconfig | grep -B 6 'status: active'
+```
+
+linux
+
+```
+
+ip link show
+```
+
 Steg:
 Skapa ett macvlan-nätverk:
 
@@ -89,8 +105,8 @@ docker network create \
  --subnet=192.168.1.0/24 \
  --gateway=192.168.1.1 \
  --ip-range=192.168.1.100/28 \
- -o parent=enp2s0 \
- fastapi_net
+ -o parent=en0 \
+ fast_net
 
 docker network create \
  --driver macvlan \
@@ -98,11 +114,11 @@ docker network create \
  --gateway=192.168.1.1 \
  --ip-range=192.168.1.96/28 \
  -o parent=enp2s0 \
- fastapi_net
+ fast_net
 
 Kör flera containrar:
 
-docker run -d --name fastapi-app-101 --net fastapi_net --ip 192.168.1.101 \
+docker run -d --name fastapi-app-101 --net fast_net --ip 192.168.1.101 \
  -e POSTGRES_DB=postgres \
  -e POSTGRES_USER=postgres \
  -e POSTGRES_PASSWORD=your_password \
@@ -112,7 +128,7 @@ docker run -d --name fastapi-app-101 --net fastapi_net --ip 192.168.1.101 \
  -e UVICORN_PORT=8000 \
  peneh/fastapi4k8:latest
 
-docker run -d --name fastapi-app-102 --net fastapi_net --ip 192.168.1.102 \
+docker run -d --name fastapi-app-102 --net fast_net --ip 192.168.1.102 \
  -e POSTGRES_DB=postgres \
  -e POSTGRES_USER=postgres \
  -e POSTGRES_PASSWORD=your_password \

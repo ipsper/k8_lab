@@ -350,3 +350,377 @@ FastAPI-container
 --name fastapi-app: Namnger containern.
 --link postgres-db:db: Kopplar FastAPI-container till PostgreSQL-container via aliaset db.
 -e DATABASE_URL=...: Miljövariabel som används av FastAPI för att ansluta till databasen.
+
+### test run
+
+Att skapa en FastAPI-app som skriver till en PostgreSQL-databas i ett Kubernetes-kluster med k3s (en lightweight Kubernetes-distribution) kräver flera steg. Här är en steg-för-steg-guide:
+
+1. Förbered din FastAPI-app
+   Installera beroenden: Skapa en Python-miljö och installera nödvändiga bibliotek:
+
+bash
+￼Copy code
+pip install fastapi uvicorn psycopg2-binary sqlalchemy
+Exempel på FastAPI-app med PostgreSQL och SQLAlchemy:
+
+python
+￼Copy code
+from fastapi import FastAPI, HTTPException
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+DATABASE_URL = "postgresql://user:password@postgres-service.default.svc.cluster.local/dbname"
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Definiera en tabell
+
+class Item(Base):
+**tablename** = "items"
+id = Column(Integer, primary_key=True, index=True)
+name = Column(String, index=True)
+
+# Initiera databasen
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+@app.post("/items/")
+def create_item(name: str):
+db = SessionLocal()
+try:
+new_item = Item(name=name)
+db.add(new_item)
+db.commit()
+db.refresh(new_item)
+return new_item
+except Exception as e:
+db.rollback()
+raise HTTPException(status_code=500, detail=str(e))
+finally:
+db.close() 2. Skapa en PostgreSQL-databas i klustret
+Använd en Kubernetes StatefulSet eller Helm Chart för PostgreSQL:
+
+Med Helm:
+
+bash
+￼Copy code
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install postgres bitnami/postgresql \
+ --set auth.username=user \
+ --set auth.password=password \
+ --set auth.database=dbname
+Detta skapar en PostgreSQL-instans som är åtkomlig via postgres-service.default.svc.cluster.local inom klustret.
+
+3. Dockerisera FastAPI-appen
+   Skapa en Dockerfile för din app:
+
+dockerfile
+￼Copy code
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+Bygg och tagga bilden:
+
+bash
+￼Copy code
+docker build -t fastapi-app:latest . 4. Skapa Kubernetes-manifest för FastAPI-appen
+Deployment och Service för FastAPI:
+
+yaml
+￼Copy code
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+name: fastapi-app
+spec:
+replicas: 2
+selector:
+matchLabels:
+app: fastapi-app
+template:
+metadata:
+labels:
+app: fastapi-app
+spec:
+containers: - name: fastapi
+image: fastapi-app:latest
+ports: - containerPort: 8000
+env: - name: DATABASE_URL
+value: "postgresql://user:password@postgres-service.default.svc.cluster.local/dbname"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+name: fastapi-service
+spec:
+selector:
+app: fastapi-app
+ports:
+
+- protocol: TCP
+  port: 80
+  targetPort: 8000
+  type: ClusterIP
+  Spara ovanstående i en fil, t.ex. fastapi.yaml, och applicera det:
+
+bash
+￼Copy code
+kubectl apply -f fastapi.yaml 5. Testa och verifiera
+Exponera appen lokalt:
+
+bash
+￼Copy code
+kubectl port-forward service/fastapi-service 8080:80
+Skicka en POST-förfrågan till API:t:
+
+bash
+￼Copy code
+curl -X POST "http://localhost:8080/items/" -H "Content-Type: application/json" -d '{"name": "Test Item"}' 6. Skala och hantera appen
+Använd Kubernetes kommandon för att skala eller övervaka din FastAPI-app:
+
+bash
+￼Copy code
+kubectl scale deployment fastapi-app --replicas=3
+kubectl get pods
+kubectl logs deployment/fastapi-app 7. Tips för produktion
+Databasanslutning: Använd en Connection Pool Manager som asyncpg med Databases-biblioteket för bättre prestanda.
+TLS: Använd en Ingress Controller som Traefik eller NGINX för att hantera HTTPS.
+Secrets: Använd Kubernetes Secrets för databaslösenord och annan känslig information.
+Behöver du fler detaljer?
+
+￼
+￼
+￼
+￼
+￼
+￼
+You said:
+Lägg till en funktion i main som lägger in user mail och id i databasen och sen läser innehållet
+ChatGPT said:
+ChatGPT
+Här är en uppdaterad version av din FastAPI-app som inkluderar en funktion för att lägga till en användares e-postadress och ID i databasen och sedan läsa innehållet:
+
+Uppdaterad kod för FastAPI-app
+python
+￼Copy code
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+
+DATABASE_URL = "postgresql://user:password@postgres-service.default.svc.cluster.local/dbname"
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Definiera tabeller
+
+class User(Base):
+**tablename** = "users"
+id = Column(Integer, primary_key=True, index=True)
+email = Column(String, unique=True, index=True)
+
+# Initiera databasen
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI()
+
+# Dependency för att få en databas-session
+
+def get_db():
+db = SessionLocal()
+try:
+yield db
+finally:
+db.close()
+
+# Lägg till en ny användare
+
+@app.post("/users/")
+def create_user(id: int, email: str, db: Session = Depends(get_db)):
+try:
+new_user = User(id=id, email=email)
+db.add(new_user)
+db.commit()
+db.refresh(new_user)
+return {"message": "User added successfully", "user": new_user}
+except Exception as e:
+db.rollback()
+raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
+
+# Läs alla användare från databasen
+
+@app.get("/users/")
+def read_users(db: Session = Depends(get_db)):
+try:
+users = db.query(User).all()
+return {"users": users}
+except Exception as e:
+raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+Funktioner förklarade
+/users/ (POST):
+
+Tar emot id och email som indata.
+Lägger till en ny användare i databasen.
+Returnerar ett meddelande och information om användaren.
+/users/ (GET):
+
+Hämtar alla användare från databasen.
+Returnerar en lista över alla användare.
+Testa API:t
+Lägg till en användare
+Skicka en POST-förfrågan:
+
+bash
+￼Copy code
+curl -X POST "http://localhost:8080/users/" \
+-H "Content-Type: application/json" \
+-d '{"id": 1, "email": "example@test.com"}'
+Hämta alla användare
+Skicka en GET-förfrågan:
+
+bash
+￼Copy code
+curl -X GET "http://localhost:8080/users/" -H "Content-Type: application/json"
+Uppdatera databasen i Kubernetes
+Om tabellen users inte existerar i databasen än:
+
+Radera eventuell tidigare FastAPI-pod:
+
+bash
+￼Copy code
+kubectl delete pod <fastapi-pod-namn>
+Starta om appen för att säkerställa att Base.metadata.create_all(bind=engine) skapar de nya tabellerna.
+
+Nu kan din FastAPI-app hantera användardata! Vill du lägga till fler funktioner, till exempel uppdatering eller borttagning av användare?
+
+￼
+￼
+￼
+￼
+￼
+You said:
+Kan man få DATABASEN_URL som variabler till yaml filen
+ChatGPT said:
+ChatGPT
+Ja, du kan använda Kubernetes ConfigMaps och Secrets för att hantera variabler som DATABASE_URL i din YAML-fil. Det är en bra praxis att hålla känslig information, som databaslösenord, i Secrets, medan mindre känsliga variabler kan lagras i ConfigMaps.
+
+1. Skapa en Secret för känslig information
+   Skapa en Kubernetes Secret för att lagra användarnamn, lösenord och databasnamn.
+
+Secret-manifest (secret.yaml):
+
+yaml
+￼Copy code
+apiVersion: v1
+kind: Secret
+metadata:
+name: postgres-secret
+type: Opaque
+data:
+username: dXNlcg== # Bas64-kodad "user"
+password: cGFzc3dvcmQ= # Bas64-kodad "password"
+database: ZGJuYW1l # Bas64-kodad "dbname"
+Du kan använda echo -n 'värde' | base64 för att skapa de Base64-kodade värdena.
+
+Applicera Secret:
+
+bash
+￼Copy code
+kubectl apply -f secret.yaml 2. Skapa en ConfigMap för mindre känslig information
+Skapa en ConfigMap för databasens värdnamn och port.
+
+ConfigMap-manifest (configmap.yaml):
+
+yaml
+￼Copy code
+apiVersion: v1
+kind: ConfigMap
+metadata:
+name: postgres-config
+data:
+host: "postgres-service.default.svc.cluster.local"
+port: "5432"
+Applicera ConfigMap:
+
+bash
+￼Copy code
+kubectl apply -f configmap.yaml 3. Använd Secret och ConfigMap i din Deployment
+Uppdatera din Deployment-manifestfil för att injicera miljövariabler i containern.
+
+Uppdaterad Deployment (fastapi.yaml):
+
+yaml
+￼Copy code
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+name: fastapi-app
+spec:
+replicas: 2
+selector:
+matchLabels:
+app: fastapi-app
+template:
+metadata:
+labels:
+app: fastapi-app
+spec:
+containers: - name: fastapi
+image: fastapi-app:latest
+ports: - containerPort: 8000
+env: - name: POSTGRES_USER
+valueFrom:
+secretKeyRef:
+name: postgres-secret
+key: username - name: POSTGRES_PASSWORD
+valueFrom:
+secretKeyRef:
+name: postgres-secret
+key: password - name: POSTGRES_DB
+valueFrom:
+secretKeyRef:
+name: postgres-secret
+key: database - name: POSTGRES_HOST
+valueFrom:
+configMapKeyRef:
+name: postgres-config
+key: host - name: POSTGRES_PORT
+valueFrom:
+configMapKeyRef:
+name: postgres-config
+key: port - name: DATABASE_URL
+value: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}" 4. Testa och verifiera
+Applicera Deployment:
+
+bash
+￼Copy code
+kubectl apply -f fastapi.yaml
+Kontrollera miljövariablerna i podden:
+
+bash
+￼Copy code
+kubectl exec -it <pod-namn> -- env
+Du bör se DATABASE_URL korrekt konfigurerad.
+
+Fördelar med denna metod
+Säkerhet: Känslig information hanteras med Secrets.
+Flexibilitet: Du kan ändra variabler utan att behöva uppdatera din applikation.
+Skalbarhet: ConfigMaps och Secrets kan återanvändas av flera applikationer.
+Vill du lägga till något mer, till exempel hur du roterar Secrets?

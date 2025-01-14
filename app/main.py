@@ -1,53 +1,59 @@
-from fastapi import FastAPI, HTTPException
-from contextlib import asynccontextmanager
-from database import database, metadata, engine
-from crud import create_user, get_users
-from models import users  # Ensure this import is present
-from dotenv import load_dotenv
-import sqlalchemy
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
+from sqlalchemy import create_engine, Column, Integer, String, TIMESTAMP, func
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
 
-# Load environment variables from .env file if it exists
-load_dotenv()
+DATABASE_URL = "postgresql://user:your_password@192.168.1.120:5432/dbname"
 
-# Function to check if the table exists and create it if it does not
-def ensure_table_exists(engine, table_name):
-    inspector = sqlalchemy.inspect(engine)
-    if not inspector.has_table(table_name):
-        metadata.create_all(engine)
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-# Ensure the users table exists
-ensure_table_exists(engine, "users")
+# Definiera tabeller
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())  # Add created_at column
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True)
 
-# Create FastAPI application
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup event
-    await database.connect()
-    yield
-    # Shutdown event
-    await database.disconnect()
 
-app = FastAPI(lifespan=lifespan)
+# Initiera databasen
+Base.metadata.create_all(bind=engine)
 
-# Endpoint to create a user
+app = FastAPI()
+
+# Dependency för att få en databas-session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+class UserCreate(BaseModel):
+    name: str
+    email: str
+
+# Lägg till en ny användare
 @app.post("/users/")
-async def add_user(name: str, email: str):
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
     try:
-        user_id = await create_user(name, email)
-        return {"id": user_id, "name": name, "email": email}
+        new_user = User(name=user.name, email=user.email)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return {"message": "User added successfully", "user": new_user}
     except Exception as e:
-        raise HTTPException(status_code=400, detail="User could not be created.")
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
-# Endpoint to get all users
+# Läs alla användare från databasen
 @app.get("/users/")
-async def list_users():
-    return await get_users()
-
-@app.get("/db-test")
-async def test_db():
+def read_users(db: Session = Depends(get_db)):
     try:
-        query = "SELECT 1"
-        result = await database.fetch_one(query)
-        return {"message": "Database connection successful", "result": result}
+        users = db.query(User).all()
+        return {"users": users}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

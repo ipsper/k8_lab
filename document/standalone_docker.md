@@ -103,6 +103,13 @@ docker network create fastapi-network
 
 # Run PostgreSQL container
 
+per@per-PN52:~/repo/k8_lab$ docker run -d --name postgres-db --net fastapi_net --ip 192.168.1.120 \
+ -e POSTGRES_DB=dbname \
+ -e POSTGRES_USER=user \
+ -e POSTGRES_PASSWORD=your_password \
+ -p 5432:5432 \
+ postgres:13
+
 docker run -d --name postgres --network fastapi-network \
  -e POSTGRES_USER=user \
  -e POSTGRES_PASSWORD=password \

@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, TIMESTAMP, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
+from logger_config import logger
 
 DATABASE_URL = "postgresql://user:your_password@192.168.1.120:5432/dbname"
 
@@ -44,9 +45,11 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
+        logger.info("User added successfully", extra={"user": new_user})
         return {"message": "User added successfully", "user": new_user}
     except Exception as e:
         db.rollback()
+        logger.error("Error adding user", exc_info=True)
         raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
 # Läs alla användare från databasen
@@ -54,6 +57,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 def read_users(db: Session = Depends(get_db)):
     try:
         users = db.query(User).all()
+        logger.info("Fetched all users")
         return {"users": users}
     except Exception as e:
+        logger.error("Error fetching users", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

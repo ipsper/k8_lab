@@ -1,0 +1,23 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  otlphttp:
+    endpoint: "https://opensearch-host:9200"
+    headers:
+      Authorization: "Bearer YOUR_API_TOKEN" # Om autentisering behövs
+    tls:
+      insecure: false
+      ca_file: "/path/to/ca.crt" # Certifikat för att verifiera OpenSearch
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [otlphttp]
+    metrics:
+      receivers: [otlp]
+      exporters: [otlphttp]

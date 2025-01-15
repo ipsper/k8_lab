@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, Column, Integer, String, TIMESTAMP, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from logger_config import logger
+from routes_cards import router as cards_router  # Import the cards router
 
 DATABASE_URL = "postgresql://user:your_password@192.168.1.120:5432/dbname"
 
@@ -62,3 +63,6 @@ def read_users(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error("Error fetching users", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
+# Include the cards router
+app.include_router(cards_router)

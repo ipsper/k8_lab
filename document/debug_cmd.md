@@ -39,3 +39,46 @@ kind create cluster --config kubernetes/kind-config.yaml
 
 ￼
 docker logs kind-control-plane
+
+# lite debug kubectl
+
+1. Check Pod Status
+   Check the status of the pods to get more details:
+
+```
+kubectl get pods
+```
+
+1. 1. Check All Namespaces
+
+```
+kubectl get pods --all-namespaces
+```
+
+2. Describe the Pod
+   Describe the pod to get more information about why it is in a Pending state:
+
+```
+kubectl describe pod <pod-name>
+```
+
+Look for events at the bottom of the output to see if there are any errors or warnings.
+
+2. 1. Check Logs
+      Check the logs of the pod to see if there are any errors:
+
+￼kubectl logs <pod-name>
+
+```
+
+￼kubectl logs fastapi-7447b65c7-f8z9m
+```
+
+3. Verify Deployment
+   Ensure that the fastapi deployment is correctly applied and running:
+
+```
+
+kubectl get deployments
+kubectl describe deployment fastapi
+```

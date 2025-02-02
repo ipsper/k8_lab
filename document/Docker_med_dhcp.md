@@ -6,8 +6,38 @@ Om du vill att en Docker-container ska få en specifik IP-adress eller fungera s
 1. Bridge Network med Fastställd IP
    Du kan skapa ett anpassat Docker-nätverk och tilldela en statisk IP-adress till containern:
 
-Steg:
-Skapa ett anpassat Docker-nätverk:
+2. skapa en link om det behövs
+
+finns det?
+
+```
+ip link show
+
+```
+
+om inte skapa
+
+hitta det fysiska interfacet som passar
+
+<link namn> ett lämpligt namn
+
+<fysiskt interface> att sätta vlanet på
+
+<ip network/subnätmasken> kolla efter att icke upptaget nätverk
+
+```
+
+sudo ip link add <link namn> link  <fysiskt interface> type macvlan mode bridge
+sudo ip addr add <ip network/subnätmasken> dev <link namn>
+sudo ip link set <link namn> up
+
+sudo ip link add fastapi_net link enp2s0 type macvlan mode bridge
+sudo ip addr add 192.168.1.200/24 dev fastapi_net
+sudo ip link set fastapi_net up
+
+```
+
+3. Skapa ett anpassat Docker-nätverk:
 
 docker network create \
  --subnet=192.168.1.0/24 \
@@ -19,8 +49,7 @@ Begränsning:
 Containern är fortfarande inte på samma nätverk som din DHCP-server, men den får en fast IP inom Dockers nätverk. 2. Host Network
 Använd Docker's host network för att köra containern på värdmaskinens nätverk. Då delar containern nätverksgränssnitt med värden.
 
-Steg:
-Starta containern med flaggan --network=host:
+4. Starta containern med flaggan --network=host:
 
 docker run --network=host fastapi-app
 Containern kommer nu att använda värdmaskinens IP-adress.
@@ -30,8 +59,7 @@ Endast tillgängligt på Linux.
 Alla portar i containern är direkt exponerade på värdmaskinens nätverk. 3. Macvlan Network
 Docker's macvlan-drivrutin kan användas för att skapa ett nätverk där containrarna får en egen virtuell MAC-adress och kan tilldelas IP-adresser från en DHCP-server.
 
-Steg:
-Skapa ett macvlan-nätverk:
+5. Skapa ett macvlan-nätverk:
 
 docker network create \
  --driver macvlan \
@@ -66,10 +94,11 @@ docker network create --driver macvlan --subnet=192.168.33.0/24 --gateway=192.16
 
 Kör containrar med specifika IP-adresser:
 
-docker run -it --net fastapi_macvlan_network --name fastapi-app-101 --ip 192.168.33.101 -p 8001:8000 peneh/fastapi4k8
-docker run -it --net fastapi_network --name fastapi-app-101 --ip 192.168.33.101 -p 8001:8000 fastapi-app
+docker run -it --net fastapi-net --name fastapi-app-101 --ip 192.168.33.101 -p 8001:8000 peneh/fastapi4k8
+docker run -it --net fastapi-net --name fastapi-app-102 --ip 192.168.33.102 -p 8001:8000 peneh/fastapi4k8
 
-docker run -it --net fastapi_network --name fastapi-app-102 --ip 192.168.33.102 -p 8002:8000 fastapi-app
+docker run -it --net fastapi-net --name fastapi-app-101 --ip 192.168.33.101 -p 8001:8000 fastapi-app
+docker run -it --net fastapi-net --name fastapi-app-102 --ip 192.168.33.102 -p 8002:8000 fastapi-app
 
 Åtkomst till containrarna:
 

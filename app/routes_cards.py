@@ -63,3 +63,32 @@ def read_cards(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error("Error fetching cards", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
+# Endpoint to delete a card by ID
+@router.delete("/cards/{card_id}")
+def delete_card(card_id: int, db: Session = Depends(get_db)):
+    try:
+        card = db.query(Card).filter(Card.id == card_id).first()
+        if card is None:
+            raise HTTPException(status_code=404, detail="Card not found")
+        db.delete(card)
+        db.commit()
+        logger.info("Card deleted successfully", extra={"card_id": card_id})
+        return {"message": "Card deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        logger.error("Error deleting card", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+# Endpoint to delete all cards
+@router.delete("/cards/")
+def delete_all_cards(db: Session = Depends(get_db)):
+    try:
+        db.query(Card).delete()
+        db.commit()
+        logger.info("All cards deleted successfully")
+        return {"message": "All cards deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        logger.error("Error deleting all cards", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")   

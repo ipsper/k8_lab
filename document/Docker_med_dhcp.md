@@ -178,6 +178,16 @@ docker run -d --name fastapi-app-101 --net fastapi_net --ip 192.168.1.101 \
  -e UVICORN_PORT=8000 \
  peneh/fastapi4k8:latest
 
+docker run -d --name fastapi-app-102 --net fastapi_net --ip 192.168.1.102 \
+ -e POSTGRES_DB=dbname \
+ -e POSTGRES_USER=user \
+ -e POSTGRES_PASSWORD=your_password \
+ -e POSTGRES_HOST=192.168.1.120 \
+ -e POSTGRES_PORT=5432 \
+ -e UVICORN_HOST=0.0.0.0 \
+ -e UVICORN_PORT=8000 \
+ peneh/fastapi4k8:latest
+
 - mac
 
 docker run -d --name fastapi-app-101 --net fastapi_net --ip 192.168.1.101 \

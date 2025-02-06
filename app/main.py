@@ -63,6 +63,35 @@ def read_users(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error("Error fetching users", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-    
+
+# Endpoint to delete a user by ID
+@app.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        db.delete(user)
+        db.commit()
+        logger.info("User deleted successfully", extra={"user_id": user_id})
+        return {"message": "User deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        logger.error("Error deleting user", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+# Endpoint to delete all users
+@app.delete("/users/")
+def delete_all_users(db: Session = Depends(get_db)):
+    try:
+        db.query(User).delete()
+        db.commit()
+        logger.info("All users deleted successfully")
+        return {"message": "All users deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        logger.error("Error deleting all users", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
 # Include the cards router
 app.include_router(cards_router)

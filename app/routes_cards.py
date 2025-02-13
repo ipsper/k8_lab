@@ -91,4 +91,15 @@ def delete_all_cards(db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         logger.error("Error deleting all cards", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")   
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
+# Endpoint to count all cards
+@router.get("/cards/count")
+def count_cards(db: Session = Depends(get_db)):
+    try:
+        count = db.query(Card).count()
+        logger.info("Counted all cards")
+        return {"count": count}
+    except Exception as e:
+        logger.error("Error counting cards", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
